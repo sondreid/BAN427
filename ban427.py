@@ -53,3 +53,36 @@ df.loc[df['TENURE_TIME2']- df['TENURE_TIME1'] < 0]
 
 
 
+##  Churn and more sales by the size of portfolio. 
+
+
+df['PREMIUM_INCREASE'] = np.where((df['TOTAL_PREM_TIME2'] - df['TOTAL_PREM_TIME1']) > 0, 1, 0)
+
+df.groupby(by=["PREMIUM_INCREASE"]).describe().loc[:,['FULL_CHURN','PARTIAL_CHURN', "MORE_SALE"]]
+
+
+(df['TOTAL_PREM_TIME2'] - df['TOTAL_PREM_TIME1']).describe()
+
+
+def size_groups(x):
+    """'
+    """
+
+    if   x < 30:
+        return '<30'
+    elif x < 40:
+        return '<40'
+    elif x < 50:
+        return '<50'
+    elif x < 60:
+        return '<60'
+    elif x < 70:
+        return '<70'
+    else:
+        return '>=70'
+
+
+col(df)
+
+##  Churn and more sales by whether customers has filed a claim
+df.groupby(by=['CLAIM_EVENT_BEFORE_TIME1']).describe().loc[:,['FULL_CHURN','PARTIAL_CHURN', "MORE_SALE"]]
