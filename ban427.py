@@ -17,15 +17,39 @@ df['MORE_SALE']     = np.where((df['NUMBER_COVERS_TIME2'] - df['NUMBER_COVERS_TI
 
 
 
+# What characterizes more sale customers?
+more_sale_customers = df.loc[df['MORE_SALE'] ==1]
+
+
 # Descriptive statistics
 df = pd.DataFrame(df)
 df.FULL_CHURN.astype('category').describe()
 df.PARTIAL_CHURN.astype('category').describe()
 df.MORE_SALE.astype('category').describe()
 
+# Descriptive statistics with group by AGE_GROUP
+def age_groups(x):
+    if   x < 30:
+        return '<30'
+    elif x < 40:
+        return '<40'
+    elif x < 50:
+        return '<50'
+    elif x < 60:
+        return '<60'
+    elif x < 70:
+        return '<70'
+    else:
+        return '>=70'
+
+df['AGE_GROUP'] = df['AGE'].apply(age_groups)
+
+df.groupby(by=["AGE_GROUP"]).describe().loc[:,['FULL_CHURN','PARTIAL_CHURN', "MORE_SALE"]]
 
 
+((df.TENURE_TIME2 - df.TENURE_TIME1) >20).sum()
 
+df.loc[df['TENURE_TIME2']- df['TENURE_TIME1'] < 0]
 
 
 
