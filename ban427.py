@@ -183,22 +183,15 @@ hist_df_full_churn_no_claim = df.loc[df.CLAIM_EVENT_BEFORE_TIME1 == 0,['FULL_CHU
 hist_df_full_churn_no_claim.index.name = 'AGE_GROUP'
 hist_df_full_churn_no_claim.reset_index(inplace=True)
 
-
+bar_plot(hist_df_full_churn_no_claim, "AGE_GROUP", 'WOMAN', 'FULL_CHURN', 'GENDER', 'Men', 'Women', 'Claim Event', 'Number of full churners')
 
 # FULL CHURNERS given claim
 hist_df_full_churn_given_claim = df.loc[df.CLAIM_EVENT_BEFORE_TIME1 == 1,['FULL_CHURN','AGE_GROUP', 'WOMAN']].groupby(by = ["AGE_GROUP", 'WOMAN']).sum()
 hist_df_full_churn_given_claim.index.name = 'AGE_GROUP'
 hist_df_full_churn_given_claim.reset_index(inplace=True)
 
+bar_plot(hist_df_full_churn_given_claim, "AGE_GROUP", 'WOMAN', 'FULL_CHURN', 'GENDER', 'Men', 'Women', 'Claim Event', 'Number of full churners given filed claim' )
 
-
-# Print full churners bar chart
-sns.set_theme(palette='pastel')
-bar_plot(hist_df_full_churn_no_claim, "AGE_GROUP", 'WOMAN', 'FULL_CHURN', 'GENDER', 'Men', 'Women', 'Claim Event', 'Number of full churners')
-sns.set_theme()
-plot = bar_plot(hist_df_full_churn_given_claim, "AGE_GROUP", 'WOMAN', 'FULL_CHURN', 'GENDER', 'Men', 'Women', 'Claim Event', 'Number of full churners' )
-plot.set_title("Plot of full churners given full churners that has filed a claim vs full churners that has not filed a claim")
-sns.set_theme(palette='pastel')
 
 
 # FULL CHURN by claim event 
@@ -207,8 +200,6 @@ hist_df_full_claim_event.index.name = 'CLAIM_EVENT_BEFORE_TIME1'
 hist_df_full_claim_event.reset_index(inplace=True)
 
 bar_plot(hist_df_full_claim_event, "CLAIM_EVENT_BEFORE_TIME1", 'WOMAN', 'FULL_CHURN', 'GENDER', 'Men', 'Women', 'Claim Event', 'Number of full churners' )
-
-
 
 
 
