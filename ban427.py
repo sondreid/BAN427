@@ -7,15 +7,17 @@ import numpy as np
 from scipy import stats
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn import model_selection, metrics, SVC, GaussianNB, confusion_matrix, accuracy_score
-
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn import model_selection, metrics
+from sklearn.metrics import confusion_matrix, accuracy_score
 # Import data from excel to raw_df
 master = pd.read_excel("exam_case_data.xlsx")
 raw_df = master.copy()
 
 
 
-# New columns
+# Adding new columns
 raw_df['FULL_CHURN']    = np.where(raw_df['TIME2'] != 2, 1, 0)
 raw_df['PARTIAL_CHURN'] = np.where((raw_df['NUMBER_COVERS_TIME2'] - raw_df['NUMBER_COVERS_TIME1']) < 0, 1, 0)
 raw_df['MORE_SALE']     = np.where((raw_df['NUMBER_COVERS_TIME2'] - raw_df['NUMBER_COVERS_TIME1']) > 0, 1, 0)
@@ -52,9 +54,37 @@ df.FULL_CHURN.astype('category').describe()
 df.PARTIAL_CHURN.astype('category').describe()
 df.MORE_SALE.astype('category').describe()
 
-# Tenure
-df.TENURE_TIME1.describe()
-df.TENURE_TIME2.describe()
+
+
+
+##  Churn and more sales by age groups. 
+def age_groups(x):
+    """'
+    Function that outputs  a string denoting an agegroup depending on
+    the input integer. 
+    """
+    if   x < 30:
+        return '<30'
+    elif x < 40:
+        return '<40'
+    elif x < 50:
+        return '<50'
+    elif x < 60:
+        return '<60'
+    elif x < 70:
+        return '<70'
+    else:
+        return '>=70'
+
+df['AGE_GROUP'] = df['AGE'].apply(age_groups)
+
+
+### Age table ##
+
+age_table = df.groupby(by=["AGE_GROUP"]).describe().loc[:,['FULL_CHURN','PARTIAL_CHURN', "MORE_SALE"]]
+
+age_table.style
+
 
 
 # Binary variables table
@@ -81,34 +111,7 @@ table_continous = pd.DataFrame({'Tenure time 1':(df['TENURE_TIME1']).describe()[
 table_continous.style.format('{:.2f}')
 
 
-##  Churn and more sales by age groups. 
-def age_groups(x):
-    """'
-    Function that outputs  a string denoting an agegroup depending on
-    the input integer. 
-    """
-    if   x < 30:
-        return '<30'
-    elif x < 40:
-        return '<40'
-    elif x < 50:
-        return '<50'
-    elif x < 60:
-        return '<60'
-    elif x < 70:
-        return '<70'
-    else:
-        return '>=70'
 
-df['AGE_GROUP'] = df['AGE'].apply(age_groups)
-
-df.groupby(by=["AGE_GROUP"]).describe().loc[:,['FULL_CHURN','PARTIAL_CHURN', "MORE_SALE"]]
-
-
-((df.TENURE_TIME2 - df.TENURE_TIME1) >20).sum()
-
-
-df.loc[df['TENURE_TIME2']- df['TENURE_TIME1'] < 0]
 
 
 ## Looking for age differences
