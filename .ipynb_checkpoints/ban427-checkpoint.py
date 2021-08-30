@@ -8,63 +8,30 @@ from scipy import stats
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Import data from excel to raw_df
+# Import data from excel to df
 master = pd.read_excel("exam_case_data.xlsx")
-raw_df = master.copy()
+df = master.copy()
 
 
 # New columns
-raw_df['FULL_CHURN']    = np.where(raw_df['TIME2'] != 2, 1, 0)
-raw_df['PARTIAL_CHURN'] = np.where((raw_df['NUMBER_COVERS_TIME2'] - raw_df['NUMBER_COVERS_TIME1']) < 0, 1, 0)
-raw_df['MORE_SALE']     = np.where((raw_df['NUMBER_COVERS_TIME2'] - raw_df['NUMBER_COVERS_TIME1']) > 0, 1, 0)
+df['FULL_CHURN']    = np.where(df['TIME2'] != 2, 1, 0)
+df['PARTIAL_CHURN'] = np.where((df['NUMBER_COVERS_TIME2'] - df['NUMBER_COVERS_TIME1']) < 0, 1, 0)
+df['MORE_SALE']     = np.where((df['NUMBER_COVERS_TIME2'] - df['NUMBER_COVERS_TIME1']) > 0, 1, 0)
 
 
 
 # What characterizes more sale customers?
-more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==1]
-non_more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==0]
+more_sale_customers = df.loc[df['MORE_SALE'] ==1]
+non_more_sale_customers = df.loc[df['MORE_SALE'] ==0]
 
 
-################ Clean data errors in tenure difference #############
 
-
-len(raw_df[(raw_df['TENURE_TIME2'] - raw_df['TENURE_TIME1'] == 0.5)])
-
-len(raw_df[(raw_df['TIME2'].isnull())])
-
-df = raw_df[(raw_df['TENURE_TIME2'] - raw_df['TENURE_TIME1'] == 0.5) | (raw_df['TIME2']).isnull()]
 
 # Descriptive statistics
 df = pd.DataFrame(df)
 df.FULL_CHURN.astype('category').describe()
 df.PARTIAL_CHURN.astype('category').describe()
 df.MORE_SALE.astype('category').describe()
-
-# Tenure
-df.TENURE_TIME1.describe()
-df.TENURE_TIME2.describe()
-
-
-# Binary variables table
-
-table_data = pd.DataFrame({1:[ (df.loc[df['FULL_CHURN'] == 1, 'FULL_CHURN']).count()/len(df), (df.loc[df['PARTIAL_CHURN'] == 1, 'FULL_CHURN']).count()/len(df)]})
-
-df
-
-table = pd.DataFrame([[(df.loc[df['FULL_CHURN'] == 1, 'FULL_CHURN']).count()/len(df), ],
-                     [(df.loc[df['PARTIAL_CHURN'] == 1, 'FULL_CHURN']).count()/len(df), 439]],
-                     index = ['Full churn (Positive)', 'Partial churn (Positive)'],
-                     columns = ["Churn count", "Churn percentage"])
-
-
-table.style
-table.to_html
-
-
-## Number of covers table
-
-s = df.style
-
 
 ##  Churn and more sales by age groups. 
 def age_groups(x):
@@ -92,28 +59,7 @@ df.groupby(by=["AGE_GROUP"]).describe().loc[:,['FULL_CHURN','PARTIAL_CHURN', "MO
 
 ((df.TENURE_TIME2 - df.TENURE_TIME1) >20).sum()
 
-
 df.loc[df['TENURE_TIME2']- df['TENURE_TIME1'] < 0]
-
-
-## Looking for age differences
-tenure_diff_negative = df.loc[df['TENURE_TIME2']- df['TENURE_TIME1'] < 0, 'AGE']
-tenure_diff_positive = df.loc[df['TENURE_TIME2']- df['TENURE_TIME1'] > 0, 'AGE']
-tenure_diff_negative.describe()
-tenure_diff_positive.describe()
-
-tenure_diff = df[(df['TENURE_TIME2']- df['TENURE_TIME1'] < 0) | (df['TENURE_TIME2']- df['TENURE_TIME1'] > 1)]
-
-tenure_diff_half_year = df[(df['TENURE_TIME2'])]
-
-len(df[(df['TENURE_TIME2'] - df['TENURE_TIME1'] == 0.5)])
-
-len(df[(df['TIME2'] == np.NaN)])
-
-df[(df['TENURE_TIME2'] - df['TENURE_TIME1'] == 0.5) | (df['TIME2']).isnull()]
-
-df[(df['TENURE_TIME2'] - df['TENURE_TIME1'] == 0.5) | (df['TENURE_TIME2'] == np.NaN)].loc[df['TENURE_TIME2'] == np.NaN, 'TENURE_TIME2']
-
 
 
 ##  Churn and more sales by the size of portfolio. 
