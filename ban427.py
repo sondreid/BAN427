@@ -28,13 +28,9 @@ non_more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==0]
 ################ Clean data errors in tenure difference #############
 
 
-len(raw_df[(raw_df['TENURE_TIME2'] - raw_df['TENURE_TIME1'] == 0.5)])
-
-len(raw_df[(raw_df['TIME2'].isnull())])
-
 df = raw_df[(raw_df['TENURE_TIME2'] - raw_df['TENURE_TIME1'] == 0.5) | (raw_df['TIME2']).isnull()]
 
-# Descriptive statistics
+########################### Descriptive statistics ##############################
 df = pd.DataFrame(df)
 df.FULL_CHURN.astype('category').describe()
 df.PARTIAL_CHURN.astype('category').describe()
@@ -60,22 +56,11 @@ table_binary.style.format(format_table_dict)
 
 ## Number of covers table
 
+table_continous = pd.DataFrame({'Tenure time 1':(df['TENURE_TIME1']).describe()[1:,], 'Tenure time 2':(df['TENURE_TIME2']).describe()[1:,], 
+                              'Number of Covers in period 1': (df['NUMBER_COVERS_TIME1']).describe()[1:,],
+                              'Number of Covers in period 2': (df['NUMBER_COVERS_TIME2']).describe()[1:,]})
 
 
-len((df['TENURE_TIME2']).describe()[1:,])
-(df['TENURE_TIME2']).describe()[1:,]
-
-type((df['TENURE_TIME2']).describe()[1])
-
-table_continous = pd.DataFrame({'Tenure time 1':(df['TENURE_TIME1']).describe()[1:,], 'Tenure time 2':(df['TENURE_TIME2']).describe()[1:,]})
-df_test
-
-format_table_continous = {''}
-
-table_continous =  pd.DataFrame([(df['TENURE_TIME1']).describe()[1:,],
-                     (df['TENURE_TIME2']).describe()[1:,]],
-                     index = ['Tenure time in period 1', 'Tenure time in period 2'],
-                     columns = ['Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max'])
 
 table_continous.style.format('{:.2f}')
 
