@@ -10,7 +10,13 @@ import matplotlib.pyplot as plt
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn import model_selection, metrics
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+
+
 # Import data from excel to raw_df
 master = pd.read_excel("exam_case_data.xlsx")
 raw_df = master.copy()
@@ -157,7 +163,7 @@ def bar_plot(df, x_var, hue_var, y_var, label_title, x_label, y_label, x_axis_la
     Generates a bar plot with hue.
     
     Parameters:
-        df: input dataframe
+        df: input dataframeø7609
         x_var : x variable
         hue_var: category variable. Is left out if empty string "". 
         y_var: y variable
@@ -253,7 +259,6 @@ y_more_sale     = df['MORE_SALE']
 
 
 # Splitting the data into train and test [fc = full churn, pc = partial churn, ms = more sales]
-from sklearn.model_selection import train_test_split
 
 xtrain_fc, xtest_fc, ytrain_fc, ytest_fc = train_test_split(x, y_full_churn,    test_size = 0.2, random_state = 0)
 xtrain_pc, xtest_pc, ytrain_pc, ytest_pc = train_test_split(x, y_partial_churn, test_size = 0.2, random_state = 0)
@@ -261,7 +266,6 @@ xtrain_ms, xtest_ms, ytrain_ms, ytest_ms = train_test_split(x, y_more_sale,     
 
 
 # Scaling the features
-from sklearn.preprocessing import StandardScaler
 
 sc = StandardScaler()
 
@@ -276,7 +280,7 @@ xtest_ms  = sc.transform(xtest_ms)
 
 
 ########################## Training the logistic regression model
-from sklearn.linear_model import LogisticRegression
+
 
 logreg_fc = LogisticRegression(random_state = 0)
 logreg_fc.fit(xtrain_fc, ytrain_fc)
@@ -365,6 +369,27 @@ accuracy_score(ytest_ms, ypred_knn_ms)
 
 ### ROC-curve KNN ###
 
+def roc(ytrain, ytest, ypred):
+    """
+    
+    """
+    fpr, tpr, tr = metrics.roc_curve(ytest, ypred[:,1])
+    auc = metrics.roc_auc_score(ytest, ypred[:, 1])
+
+    fpr1, tpr1, tr = metrics.roc_curve(ytrain, ypred[:,1])
+    auc1 = metrics.roc_auc_score(ytrain, ypred[:,1])
+
+    plt.figure(num = None, figsize = (10,10), dpi = 80)
+    plt.plot(fpr, tpr, label = 'SVM test data (area = %0.2f)' % auc)
+    plt.plot(fpr1, tpr1, label = 'SVM train data (area = %0.2f)' % auc1)
+    plt.plot((0,1), (1,0), ls = "--", c = ".3")
+    plt.title = (' ROC Curve - test and train data')
+    plt.xlabel('False positive rate')
+    plt.ylabel('True positive rate')
+    plt.legend()
+    plt.show()
+    return plt
+
 roc_KNN_fc = roc(ytrain_fc, ytest_fc, yprob_knn_fc)
 roc_KNN_fc
 
@@ -409,26 +434,7 @@ accuracy_score(ytest_ms, ypred_svc_ms)
 ###################### ROC Curve ################################### 
 
 
-def roc(ytrain, ytest, ypred):
-    """
-    
-    """
-    fpr, tpr, tr = metrics.roc_curve(ytest, ypred[:,1])
-    auc = metrics.roc_auc_score(ytest, ypred[:, 1])
 
-    fpr1, tpr1, tr = metrics.roc_curve(ytrain, ypred[:,1])
-    auc1 = metrics.roc_auc_score(ytrain, ypred[:,1])
-
-    plt.figure(num = None, figsize = (10,10), dpi = 80)
-    plt.plot(fpr, tpr, label = 'SVM test data (area = %0.2f)' % auc)
-    plt.plot(fpr1, tpr1, label = 'SVM train data (area = %0.2f)' % auc1)
-    plt.plot((0,1), (1,0), ls = "--", c = ".3")
-    plt.title = (' ROC Curve - test and train data')
-    plt.xlabel('False positive rate')
-    plt.ylabel('True positive rate')
-    plt.legend()
-    plt.show()
-    return plt
 
 
 roc_SVM_fc = roc(ytrain_fc, ytest_fc, ypred_svc_fc)
