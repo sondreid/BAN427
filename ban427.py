@@ -47,23 +47,37 @@ df.TENURE_TIME2.describe()
 
 # Binary variables table
 
-table_data = pd.DataFrame({1:[ (df.loc[df['FULL_CHURN'] == 1, 'FULL_CHURN']).count()/len(df), (df.loc[df['PARTIAL_CHURN'] == 1, 'FULL_CHURN']).count()/len(df)]})
+format_table_dict = {'Percentage': '{:.2%}'}
+table_binary = pd.DataFrame([[(df.loc[df['FULL_CHURN'] == 1, 'FULL_CHURN']).count(), (df.loc[df['FULL_CHURN'] == 1, 'FULL_CHURN']).count()/len(df)],
+                     [(df.loc[df['PARTIAL_CHURN'] == 1, 'PARTIAL_CHURN']).count(), (df.loc[df['PARTIAL_CHURN'] == 1, 'PARTIAL_CHURN']).count()/len(df)],
+                     [(df.loc[df['MORE_SALE'] == 1, 'MORE_SALE']).count(), (df.loc[df['MORE_SALE'] == 1, 'MORE_SALE']).count()/len(df)]],
+                     index = ['Full churn (Positive)', 'Partial churn (Positive)', 'More sales (Positive)'],
+                     columns = ["Count", "Percentage"])
 
-df
+table_binary.style.format(format_table_dict)
 
-table = pd.DataFrame([[(df.loc[df['FULL_CHURN'] == 1, 'FULL_CHURN']).count()/len(df), ],
-                     [(df.loc[df['PARTIAL_CHURN'] == 1, 'FULL_CHURN']).count()/len(df), 439]],
-                     index = ['Full churn (Positive)', 'Partial churn (Positive)'],
-                     columns = ["Churn count", "Churn percentage"])
-
-
-table.style
-table.to_html
 
 
 ## Number of covers table
 
-s = df.style
+
+
+len((df['TENURE_TIME2']).describe()[1:,])
+(df['TENURE_TIME2']).describe()[1:,]
+
+type((df['TENURE_TIME2']).describe()[1])
+
+table_continous = pd.DataFrame({'Tenure time 1':(df['TENURE_TIME1']).describe()[1:,], 'Tenure time 2':(df['TENURE_TIME2']).describe()[1:,]})
+df_test
+
+format_table_continous = {''}
+
+table_continous =  pd.DataFrame([(df['TENURE_TIME1']).describe()[1:,],
+                     (df['TENURE_TIME2']).describe()[1:,]],
+                     index = ['Tenure time in period 1', 'Tenure time in period 2'],
+                     columns = ['Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max'])
+
+table_continous.style.format('{:.2f}')
 
 
 ##  Churn and more sales by age groups. 
