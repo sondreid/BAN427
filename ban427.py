@@ -7,16 +7,32 @@ import numpy as np
 from scipy import stats
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn import model_selection, metrics, SVC, GaussianNB, confusion_matrix, accuracy_score
 
 # Import data from excel to raw_df
 master = pd.read_excel("exam_case_data.xlsx")
 raw_df = master.copy()
 
 
+
 # New columns
 raw_df['FULL_CHURN']    = np.where(raw_df['TIME2'] != 2, 1, 0)
 raw_df['PARTIAL_CHURN'] = np.where((raw_df['NUMBER_COVERS_TIME2'] - raw_df['NUMBER_COVERS_TIME1']) < 0, 1, 0)
 raw_df['MORE_SALE']     = np.where((raw_df['NUMBER_COVERS_TIME2'] - raw_df['NUMBER_COVERS_TIME1']) > 0, 1, 0)
+
+
+
+# What characterizes more sale customers?
+more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==1]
+non_more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==0]
+
+
+################ Clean data errors in tenure difference #############
+df = raw_df[(raw_df['TENURE_TIME2'] - raw_df['TENURE_TIME1'] == 0.5) | (raw_df['TIME2']).isnull()]
+
+df.loc[:,'NUMBER_COVERS_TIME2'] = df.loc[:,'NUMBER_COVERS_TIME2'].fillna(0)
+df.loc[:,'TOTAL_PREM_TIME2']    = df.loc[:,'TOTAL_PREM_TIME2'].fillna(0)
+
 
 
 
@@ -175,13 +191,9 @@ sns.histplot(data = hist_df, x = "AGE_GROUP", y = 'FULL_CHURN')
 
 
 
-
 agegroup = df.loc[:,['FULL_CHURN','AGE_GROUP']].groupby(by = "AGE_GROUP").count()
 
 
-type(agegroup)
-
-agegroup.index
 
 sns.histplot(data = agegroup, x = 'AGE_GROUP', y = 'FULL_CHURN')
 
@@ -274,6 +286,221 @@ hist_df_more_sale.reset_index(inplace=True)
 # More sales plot
 bar_plot(hist_df_more_sale, "AGE_GROUP", 'WOMAN', 'MORE_SALE', 'GENDER', 'Men', 'Women', 'Age Group', 'Number of increase in coverage' )
 
+# MORE SALE
+hist_df_more_sale = df.loc[:,['MORE_SALE','AGE_GROUP', 'WOMAN']].groupby(by = ["AGE_GROUP", 'WOMAN']).sum()
+hist_df_more_sale.index.name = 'AGE_GROUP'
+hist_df_more_sale.reset_index(inplace=True)
+
+# More sales plot
+bar_plot(hist_df_more_sale, "AGE_GROUP", 'WOMAN', 'MORE_SALE', 'GENDER', 'Men', 'Women', 'Age Group', 'Number of increase in coverage' )
 
 
+
+
+
+####################### Prediction model #########################
+
+# Creating features and prediction variables
+x = df.loc[:, ~df.columns.isin(['TIME1', 'TIME2', 'TENURE_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
+
+y_full_churn    = df['FULL_CHURN']
+y_partial_churn = df['PARTIAL_CHURN']
+y_more_sale     = df['MORE_SALE']
+
+
+# Splitting the data into train and test [fc = full churn, pc = partial churn, ms = more sales]
+from sklearn.model_selection import train_test_split
+
+xtrain_fc, xtest_fc, ytrain_fc, ytest_fc = train_test_split(x, y_full_churn,    test_size = 0.2, random_state = 0)
+xtrain_pc, xtest_pc, ytrain_pc, ytest_pc = train_test_split(x, y_partial_churn, test_size = 0.2, random_state = 0)
+xtrain_ms, xtest_ms, ytrain_ms, ytest_ms = train_test_split(x, y_more_sale,     test_size = 0.2, random_state = 0)
+
+
+# Scaling the features
+from sklearn.preprocessing import StandardScaler
+
+sc = StandardScaler()
+
+xtrain_fc = sc.fit_transform(xtrain_fc)
+xtest_fc  = sc.transform(xtest_fc)
+
+xtrain_pc = sc.fit_transform(xtrain_pc)
+xtest_pc  = sc.transform(xtest_pc)
+
+xtrain_ms = sc.fit_transform(xtrain_ms)
+xtest_ms  = sc.transform(xtest_ms)
+
+
+########################## Training the logistic regression model
+from sklearn.linear_model import LogisticRegression
+
+logreg_fc = LogisticRegression(random_state = 0)
+logreg_fc.fit(xtrain_fc, ytrain_fc)
+
+logreg_pc = LogisticRegression(random_state = 0)
+logreg_pc.fit(xtrain_pc, ytrain_pc)
+
+logreg_ms = LogisticRegression(random_state = 0)
+logreg_ms.fit(xtrain_ms, ytrain_ms)
+
+
+# Predicting the logreg model
+ypred_logreg_fc = logreg_fc.predict(xtest_fc)
+yprob_logreg_fc = (logreg_fc.predict_proba(xtest_fc)[:,1]  >= 0.05).astype(bool)
+
+ypred_logreg_pc = logreg_pc.predict(xtest_pc)
+yprob_logreg_pc = (logreg_pc.predict_proba(xtest_pc)[:,1]  >= 0.05).astype(bool)
+
+ypred_logreg_ms = logreg_ms.predict(xtest_ms)
+yprob_logreg_ms = (logreg_pc.predict_proba(xtest_ms)[:,1]  >= 0.05).astype(bool)
+
+
+
+cm_fc = confusion_matrix(ytest_fc, ypred_logreg_fc)
+print(cm_fc)
+accuracy_score(ytest_fc, ypred_logreg_fc)
+
+cm_pc = confusion_matrix(ytest_pc, ypred_logreg_pc)
+print(cm_pc)
+accuracy_score(ytest_pc, ypred_logreg_pc)
+
+cm_ms = confusion_matrix(ytest_ms, ypred_logreg_ms)
+print(cm_ms)
+accuracy_score(ytest_ms, ypred_logreg_ms)
+
+### ROC-curve logreg ###
+
+roc_logreg_fc = roc(ytrain_fc, ytest_fc, yprob_logreg_fc)
+roc_logreg_fc
+
+roc_logreg_pc = roc(ytrain_pc, ytest_pc, yprob_logreg_pc)
+roc_logreg_pc
+
+roc_logreg_ms = roc(ytrain_ms, ytest_ms, yprob_logreg_ms)
+roc_logreg_ms
+
+
+########################## Training the KNN-model
+from sklearn.neighbors import KNeighborsClassifier
+
+knn_fc = KNeighborsClassifier(n_neighbors = 5, metric = 'minkowski', p = 2)
+knn_fc.fit(xtrain_fc, ytrain_fc)
+
+knn_pc = KNeighborsClassifier(n_neighbors = 5, metric = 'minkowski', p = 2)
+knn_pc.fit(xtrain_pc, ytrain_pc)
+
+knn_ms = KNeighborsClassifier(n_neighbors = 5, metric = 'minkowski', p = 2)
+knn_ms.fit(xtrain_ms, ytrain_ms)
+
+# Predicting the knn models
+ypred_knn_fc = knn_fc.predict(xtest_fc)
+yprob_knn_fc = (knn_fc.predict_proba(xtest_fc)[:,1]  >= 0.05).astype(bool)
+
+ypred_knn_pc = knn_pc.predict(xtest_pc)
+yprob_knn_pc = (knn_pc.predict_proba(xtest_pc)[:,1]  >= 0.05).astype(bool)
+
+ypred_knn_ms = knn_ms.predict(xtest_ms)
+yprob_knn_ms = (knn_ms.predict_proba(xtest_ms)[:,1]  >= 0.05).astype(bool)
+
+
+# Checking the accuracy with confusion matrix
+cm_knn_fc = confusion_matrix(ytest_fc, ypred_knn_fc)
+print(cm_knn_fc)
+accuracy_score(ytest_fc, ypred_knn_fc)
+
+
+cm_knn_pc = confusion_matrix(ytest_pc, ypred_knn_pc)
+print(cm_knn_pc)
+accuracy_score(ytest_pc, ypred_knn_pc)
+
+
+cm_knn_ms = confusion_matrix(ytest_ms, ypred_knn_ms)
+print(cm_knn_ms)
+accuracy_score(ytest_ms, ypred_knn_ms)
+
+
+### ROC-curve KNN ###
+
+roc_KNN_fc = roc(ytrain_fc, ytest_fc, yprob_knn_fc)
+roc_KNN_fc
+
+roc_KNN_pc = roc(ytrain_pc, ytest_pc, yprob_knn_pc)
+roc_KNN_pc
+
+roc_KNN_ms = roc(ytrain_ms, ytest_ms, yprob_knn_ms)
+roc_KNN_ms
+
+
+########################## Training the SVM-model
+
+
+svc_fc = SVC(kernel = 'linear', random_state = 0, probability = True)
+svc_fc.fit(xtrain_fc, ytrain_fc)
+
+svc_pc = SVC(kernel = 'linear', random_state = 0, probability = True)
+svc_pc.fit(xtrain_pc, ytrain_pc)
+
+svc_ms = SVC(kernel = 'linear', random_state = 0, probability = True)
+svc_ms.fit(xtrain_ms, ytrain_ms)
+
+# Predicting the svm model
+ypred_svc_fc = (svc_fc.predict_proba(xtest_fc)[:,1]  >= 0.05).astype(bool)
+ypred_svc_pc = (svc_pc.predict_proba(xtest_pc)[:,1]  >= 0.05).astype(bool)
+ypred_svc_ms = (svc_ms.predict_proba(xtest_ms)[:,1]  >= 0.05).astype(bool)
+
+# Checking the accuracy with confusion matrix
+cm_svc_fc = confusion_matrix(ytest_fc, ypred_svc_fc)
+print(cm_svc_fc)
+accuracy_score(ytest_fc, ypred_svc_fc)
+
+cm_svc_pc = confusion_matrix(ytest_pc, ypred_svc_pc)
+print(cm_svc_pc)
+accuracy_score(ytest_pc, ypred_svc_pc)
+
+cm_svc_ms = confusion_matrix(ytest_ms, ypred_svc_ms)
+print(cm_svc_ms)
+accuracy_score(ytest_ms, ypred_svc_ms)
+
+
+###################### ROC Curve ################################### 
+
+
+def roc(ytrain, ytest, ypred):
+    """
+    
+    """
+    fpr, tpr, tr = metrics.roc_curve(ytest, ypred[:,1])
+    auc = metrics.roc_auc_score(ytest, ypred[:, 1])
+
+    fpr1, tpr1, tr = metrics.roc_curve(ytrain, ypred[:,1])
+    auc1 = metrics.roc_auc_score(ytrain, ypred[:,1])
+
+    plt.figure(num = None, figsize = (10,10), dpi = 80)
+    plt.plot(fpr, tpr, label = 'SVM test data (area = %0.2f)' % auc)
+    plt.plot(fpr1, tpr1, label = 'SVM train data (area = %0.2f)' % auc1)
+    plt.plot((0,1), (1,0), ls = "--", c = ".3")
+    plt.title = (' ROC Curve - test and train data')
+    plt.xlabel('False positive rate')
+    plt.ylabel('True positive rate')
+    plt.legend()
+    plt.show()
+    return plt
+
+
+roc_SVM_fc = roc(ytrain_fc, ytest_fc, ypred_svc_fc)
+roc_SVM_fc
+
+roc_SVM_pc = roc(ytrain_pc, ytest_pc, ypred_svc_pc)
+roc_SVM_pc
+
+roc_SVM_ms = roc(ytrain_ms, ytest_ms, ypred_svc_ms)
+roc_SVM_ms
+
+
+
+
+########################## Training the Naive bayes-model
+
+nb_fc = GaussianNB
+nb_fc.fit(xtrain_fc, ytrain_fc)
 
