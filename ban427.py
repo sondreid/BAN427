@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
 
 
 
@@ -251,7 +252,24 @@ bar_plot(hist_df_more_sale, "AGE_GROUP", 'WOMAN', 'MORE_SALE', 'GENDER', 'Men', 
 ####################### Prediction model #########################
 
 # Creating features and prediction variables
-x = df.loc[:, ~df.columns.isin(['TIME1', 'TIME2', 'TENURE_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
+
+#x = df.loc[:, ~df.columns.isin(['TIME1', 'TIME2', 'TENURE_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
+x = df[['TIME1', 'TIME2', 'TENURE_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE']]
+
+## One hot encoding age group feature
+one_hot_encoder = OneHotEncoder(handle_unknown= 'ignore')
+
+one_hot_encoder.fit(df[['AGE_GROUP']])
+
+age_group_hot = one_hot_encoder.transform(df[['AGE_GROUP']]).toarray()
+age_group_hot
+
+age_group_hot_df = pd.DataFrame(age_group_hot)
+age_group_hot_df.columns = one_hot_encoder.get_feature_names()
+
+# Joining into x
+x = x.join(age_group_hot_df)
+
 
 y_full_churn    = df['FULL_CHURN']
 y_partial_churn = df['PARTIAL_CHURN']
@@ -263,6 +281,9 @@ y_more_sale     = df['MORE_SALE']
 xtrain_fc, xtest_fc, ytrain_fc, ytest_fc = train_test_split(x, y_full_churn,    test_size = 0.2, random_state = 0)
 xtrain_pc, xtest_pc, ytrain_pc, ytest_pc = train_test_split(x, y_partial_churn, test_size = 0.2, random_state = 0)
 xtrain_ms, xtest_ms, ytrain_ms, ytest_ms = train_test_split(x, y_more_sale,     test_size = 0.2, random_state = 0)
+
+
+
 
 
 # Scaling the features
