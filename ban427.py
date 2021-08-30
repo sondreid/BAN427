@@ -45,10 +45,10 @@ non_more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==0]
 
 ################ Clean data errors in tenure difference #############
 
-
+df[(df['TENURE_TIME2'] - df['TENURE_TIME1'] == 0.5) | (df['TIME2']).isnull()]
 df = raw_df[(raw_df['TENURE_TIME2'] - raw_df['TENURE_TIME1'] == 0.5) | (raw_df['TIME2']).isnull()]
 
-########################### Descriptive statistics ##############################
+########################### Descriptive statistics ------------------------------------------------------------------------------------------------------------------------------
 df = pd.DataFrame(df)
 df.FULL_CHURN.astype('category').describe()
 df.PARTIAL_CHURN.astype('category').describe()
@@ -78,7 +78,7 @@ def age_groups(x):
 
 df['AGE_GROUP'] = df['AGE'].apply(age_groups)
 
-
+################################### TABLES ##############################
 ### Age table ##
 
 age_table = df.groupby(by=["AGE_GROUP"]).describe().loc[:,['FULL_CHURN','PARTIAL_CHURN', "MORE_SALE"]]
@@ -106,31 +106,9 @@ table_continous = pd.DataFrame({'Tenure time 1':(df['TENURE_TIME1']).describe()[
                               'Number of Covers in period 1': (df['NUMBER_COVERS_TIME1']).describe()[1:,],
                               'Number of Covers in period 2': (df['NUMBER_COVERS_TIME2']).describe()[1:,]})
 
-
-
 table_continous.style.format('{:.2f}')
 
 
-
-
-
-## Looking for age differences
-tenure_diff_negative = df.loc[df['TENURE_TIME2']- df['TENURE_TIME1'] < 0, 'AGE']
-tenure_diff_positive = df.loc[df['TENURE_TIME2']- df['TENURE_TIME1'] > 0, 'AGE']
-tenure_diff_negative.describe()
-tenure_diff_positive.describe()
-
-tenure_diff = df[(df['TENURE_TIME2']- df['TENURE_TIME1'] < 0) | (df['TENURE_TIME2']- df['TENURE_TIME1'] > 1)]
-
-tenure_diff_half_year = df[(df['TENURE_TIME2'])]
-
-len(df[(df['TENURE_TIME2'] - df['TENURE_TIME1'] == 0.5)])
-
-len(df[(df['TIME2'] == np.NaN)])
-
-df[(df['TENURE_TIME2'] - df['TENURE_TIME1'] == 0.5) | (df['TIME2']).isnull()]
-
-df[(df['TENURE_TIME2'] - df['TENURE_TIME1'] == 0.5) | (df['TENURE_TIME2'] == np.NaN)].loc[df['TENURE_TIME2'] == np.NaN, 'TENURE_TIME2']
 
 
 
@@ -158,9 +136,9 @@ df.groupby(by=['WOMAN', 'AGE_GROUP']).describe().loc[:,['FULL_CHURN','PARTIAL_CH
 #### Signifiance tests
 
 
-stats.ttest_ind(df.loc[df['AGE'] < 30 & df.loc[df['WOMAN'] == 1], ['FULL_CHURN']], df.loc[df['AGE'] < 30 & df.loc[df['WOMAN'] == 0], ['FULL_CHURN']])
+#stats.ttest_ind(df.loc[df['AGE'] < 30 & df.loc[df['WOMAN'] == 1], ['FULL_CHURN']], df.loc[df['AGE'] < 30 & df.loc[df['WOMAN'] == 0], ['FULL_CHURN']])
 
-stats.ttest_ind(df.loc[(df.AGE < 30) & (df.WOMAN == 1), 'FULL_CHURN'], df.loc[(df.AGE < 30) & (df.WOMAN == 0), 'FULL_CHURN'])
+#stats.ttest_ind(df.loc[(df.AGE < 30) & (df.WOMAN == 1), 'FULL_CHURN'], df.loc[(df.AGE < 30) & (df.WOMAN == 0), 'FULL_CHURN'])
 
 
 ## For all FULL CHURN MEN VS WOMEN
@@ -168,47 +146,10 @@ stats.ttest_ind(df.loc[(df.AGE < 30) & (df.WOMAN == 1), 'FULL_CHURN'], df.loc[(d
 age_woman = df.loc[df.WOMAN == 1, ['FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE', 'AGE_GROUP']].groupby(by = 'AGE_GROUP').describe()
 age_men   = df.loc[df.WOMAN == 0, ['FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE', 'AGE_GROUP']].groupby(by = 'AGE_GROUP').describe()
 
-ttest_ind(age_woman["FULL_CHURN"]['mean'], age_men["FULL_CHURN"]["mean"], equal_var=False)
+stats.ttest_ind(age_woman["FULL_CHURN"]['mean'], age_men["FULL_CHURN"]["mean"], equal_var=False)
 
 
-
-df.loc[:,['FULL_CHURN','AGE_GROUP']].groupby(by = "AGE_GROUP").count().plot()
-
-hist_df = df['AGE_GROUP']
-
-df.loc[:,['FULL_CHURN','AGE_GROUP']].groupby(by = "AGE_GROUP").count()
-
-
-hist_df_list = [['AGE_GROUP' , df['AGE_GROUP']], ['COUNT',df.loc[:,['FULL_CHURN','AGE_GROUP']].groupby(by = "AGE_GROUP").count()]]
-
-hist_df = pd.DataFrame(hist_df_list, columns = ['AGE_GROUP', 'COUNT'])
-
-hist_df = df.loc[:,['FULL_CHURN','AGE_GROUP']].groupby(by = "AGE_GROUP").count()
-hist_df.index.name = 'AGE_GROUP'
-hist_df.reset_index(inplace=True)
-
-hist_df
-
-# Descriptive statistics plot
-sns.histplot(data = hist_df, x = "AGE_GROUP", y = 'FULL_CHURN')
-
-
-
-agegroup = df.loc[:,['FULL_CHURN','AGE_GROUP']].groupby(by = "AGE_GROUP").count()
-
-
-
-sns.histplot(data = agegroup, x = 'AGE_GROUP', y = 'FULL_CHURN')
-
-
-df.CHURN_30.groupby(df.TEN_YEARS_CAT).count().plot()
-
-
-df.FULL_CHURN.plot(kind = 'hist')
-
-df.AGE_GROUP.hist(by = df.FULL_CHURN)
-
-
+################################### PLOTS ##############################
 
 sns.set_theme(palette='pastel')
 def bar_plot(df, x_var, hue_var, y_var, label_title, x_label, y_label, x_axis_label, y_axis_label):
