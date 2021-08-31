@@ -11,12 +11,13 @@ from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn import model_selection, metrics
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score, recall_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.neighbors import KNeighborsClassifier
 from matplotlib import pyplot
+from sklearn.ensemble import RandomForestClassifier
 
 # Import data from excel to raw_df
 master = pd.read_excel("exam_case_data.xlsx")
@@ -337,7 +338,8 @@ yprob_logreg_ms = (logreg_pc.predict_proba(xtest_ms)[:,1]  >= 0.05).astype(bool)
 
 def variable_importance(model):
     """"
-
+    Function that takes a fitted model and enumerates its features' importance.
+    Prints a barplot
     parameters:
         @model: fitted model
     """
@@ -540,36 +542,35 @@ nb_fc.fit(xtrain_fc, ytrain_fc)
 
 
 ######################### Traning the Random Forest
-from sklearn.ensemble import RandomForestClassifier
 rfc_fc = RandomForestClassifier(n_estimators = 10, criterion = 'entropy', random_state = 0)
 rfc_fc = rfc_fc.fit(xtrain_fc, ytrain_fc)
 
 # Prediction
-ypred_rfc_fc = (rfc_fc.predict_proba(xtest_fc)[:,1] > 0.05).astype(bool)
+ypred_rfc_fc = (rfc_fc.predict_proba(xtest_fc)[:,1] > 0.2).astype(bool)
 
 # Accuracy
 cm_rfc_fc = confusion_matrix(ytest_fc, ypred_rfc_fc)
 print(cm_rfc_fc)
-accuracy_score(ytest_fc, ypred_rfc_fc)
+recall_score(ytest_fc, ypred_rfc_fc)
 
 
 
-def test_treshold(model, n, y_test):
+def test_treshold(model, n, x_test, y_test):
     """ 
-    
     parameters:
         @model: fitted model
-    
     """  
     best_score = 0
     best_treshold = 0
     for i in range(n):
+        print(i/n)
         treshold = i/n 
-        current_pred_model = (model.predict_proba(xtest_fc)[:,1] >= treshold).astype(bool)
-        accuracy_test = accuracy_score(y_test, current_pred_model)
+        print(best_score)
+        y_preds = (model.predict_proba(x_test)[:,1] >= treshold).astype(bool)
+        accuracy_test = recall_score(y_test, y_preds)
         if accuracy_test > best_score:
             best_score = accuracy_test
             best_treshold = treshold
 
     return best_treshold, best_score
-test_treshold(rfc_fc, 100, ytest_fc)
+test_treshold(rfc_fc, 100, xtest_fc, ytest_fc)
