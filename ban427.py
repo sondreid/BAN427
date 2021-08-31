@@ -15,7 +15,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
-
+from sklearn.neighbors import KNeighborsClassifier
 
 
 # Import data from excel to raw_df
@@ -253,8 +253,10 @@ bar_plot(hist_df_more_sale, "AGE_GROUP", 'WOMAN', 'MORE_SALE', 'GENDER', 'Men', 
 
 # Creating features and prediction variables
 
-x = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2' ,'TENURE_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
-x_avg_income = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2' ,'TENURE_TIME2','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
+x            = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','TENURE_TIME2','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
+x_avg_income = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2' ,'TENURE_TIME2', 'FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
+
+
 
 ## One hot encoding age group feature
 one_hot_encoder = OneHotEncoder(handle_unknown= 'ignore')
@@ -345,16 +347,31 @@ accuracy_score(ytest_ms, ypred_logreg_ms)
 
 ### ROC-curve logreg ###
 
+
+###################################
+
+pred_prob=logit_model.predict_proba(x_test_small)
+fpr, tpr, tr = metrics.roc_curve(y_test, pred_prob[:,1])
+auc = metrics.roc_auc_score(y_test, pred_prob[:, 1])
+pred_prob1=logit_model.predict_proba(x_train_small)
+fpr1, tpr1, tr = metrics.roc_curve(y_train, pred_prob1[:,1])
+auc1 = metrics.roc_auc_score(y_train, pred_prob1[:, 1])
+
+
+
 #ROC-curve function
-def roc(ytrain, ytest, ypred):
+def roc(ytrain, x_train, ytest, x_test):
     """
     
     """
-    fpr, tpr, tr = metrics.roc_curve(ytest, ypred[:,1])
-    auc = metrics.roc_auc_score(ytest, ypred[:, 1])
+    fit_proba = logreg_fc.predict_proba(x_train)
+    yprob_pred = logreg_fc.predict_proba(x_test)
 
-    fpr1, tpr1, tr = metrics.roc_curve(ytrain, ypred[:,1])
-    auc1 = metrics.roc_auc_score(ytrain, ypred[:,1])
+    fpr, tpr, tr = metrics.roc_curve(ytest, yprob_pred[:,1])
+    auc = metrics.roc_auc_score(ytest, yprob_pred[:, 1])
+
+    fpr1, tpr1, tr = metrics.roc_curve(ytrain, fit_proba[:,1])
+    auc1 = metrics.roc_auc_score(ytrain, fit_proba[:,1])
 
     plt.figure(num = None, figsize = (10,10), dpi = 80)
     plt.plot(fpr, tpr, label = 'SVM test data (area = %0.2f)' % auc)
@@ -367,7 +384,7 @@ def roc(ytrain, ytest, ypred):
     plt.show()
     return plt
 
-roc_logreg_fc = roc(ytrain_fc, ytest_fc, yprob_logreg_fc)
+roc_logreg_fc = roc(ytrain_fc, xtrain_fc, ytest_fc, xtest_fc)
 roc_logreg_fc
 
 roc_logreg_pc = roc(ytrain_pc, ytest_pc, yprob_logreg_pc)
@@ -377,34 +394,9 @@ roc_logreg_ms = roc(ytrain_ms, ytest_ms, yprob_logreg_ms)
 roc_logreg_ms
 
 
-########################## Logistic regression with 'AVERAGE_INCOME_COUNTY_TIME1' ################################
-
-
-#Remove / add 'AVERAGE_INCOME_COUNTY_TIME1' from test/train set 
-y_full_churn    = df['FULL_CHURN']
-xtrain_fc, xtest_fc, ytrain_fc, ytest_fc = train_test_split(x, y_full_churn,    test_size = 0.2, random_state = 0)
-
-
-logreg_fc = LogisticRegression(random_state = 0)
-logreg_fc.fit(xtrain_fc, ytrain_fc)
-
-# Predicting the logreg model
-ypred_logreg_fc = logreg_fc.predict(xtest_fc)
-# Probability 
-yprob_logreg_fc = (logreg_fc.predict_proba(xtest_fc)[:,1]  >= 0.05).astype(bool)
-
-# Confusion matrix
-cm_fc = confusion_matrix(ytest_fc, ypred_logreg_fc)
-print(cm_fc)
-accuracy_score(ytest_fc, ypred_logreg_fc)
-
-
-
-
-
 
 ########################## Training the KNN-model
-from sklearn.neighbors import KNeighborsClassifier
+
 
 knn_fc = KNeighborsClassifier(n_neighbors = 5, metric = 'minkowski', p = 2)
 knn_fc.fit(xtrain_fc, ytrain_fc)
@@ -488,9 +480,6 @@ accuracy_score(ytest_ms, ypred_svc_ms)
 ###################### ROC Curve ################################### 
 
 
-
-
-
 roc_SVM_fc = roc(ytrain_fc, ytest_fc, ypred_svc_fc)
 roc_SVM_fc
 
@@ -501,6 +490,23 @@ roc_SVM_ms = roc(ytrain_ms, ytest_ms, ypred_svc_ms)
 roc_SVM_ms
 
 
+####### SVM-model with 'AVERAGE_INCOME_COUNTY_TIME1' ######
+
+df_avg_income = df[df['AVERAGE_INCOME_COUNTTIME1'].notna()]
+
+y_full_churn_avg_income   = df_avg_income['FULL_CHURN']
+xtrain_avg_income, xtest_avg_income, ytrain_avg_income, ytest_avg_income = train_test_split(x_avg_income, y_full_churn_avg_income, test_size = 0.2, random_state = 0)
+
+svc_fc = SVC(kernel = 'linear', random_state = 0, probability = True)
+svc_fc.fit(xtrain_avg_income, ytrain_avg_income)
+
+# Predicting the svm model
+ypred_svc_avg_income = (svc_fc.predict_proba(xtest_avg_income)[:,1]  >= 0.05).astype(bool)
+
+# Checking the accuracy with confusion matrix
+cm_svc_avg_income = confusion_matrix(ytest_avg_income, ypred_svc_avg_income)
+print(cm_svc_avg_income)
+accuracy_score(ytest_avg_income, ypred_svc_avg_income)
 
 
 ########################## Training the Naive bayes-model
