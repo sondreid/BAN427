@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.neighbors import KNeighborsClassifier
-
+from matplotlib import pyplot
 
 # Import data from excel to raw_df
 master = pd.read_excel("exam_case_data.xlsx")
@@ -253,8 +253,8 @@ bar_plot(hist_df_more_sale, "AGE_GROUP", 'WOMAN', 'MORE_SALE', 'GENDER', 'Men', 
 
 # Creating features and prediction variables
 
-x            = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','TENURE_TIME2','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
-x_avg_income = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2' ,'TENURE_TIME2', 'FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
+x            = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'PREMIUM_INCREASE', 'TIME2', 'TOTAL_PREM_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','TENURE_TIME2','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
+#x_avg_income = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2' ,'TENURE_TIME2', 'FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
 
 
 
@@ -332,6 +332,24 @@ ypred_logreg_ms = logreg_ms.predict(xtest_ms)
 yprob_logreg_ms = (logreg_pc.predict_proba(xtest_ms)[:,1]  >= 0.05).astype(bool)
 
 
+
+
+
+def variable_importance(model):
+    """"
+
+    parameters:
+        @model: fitted model
+    """
+    importance = model.coef_[0]
+    for i,v in enumerate(importance):
+            print('Feature: %0d, Score: %.5f' % (i,v))
+    pyplot.bar([x for x in range(len(importance))], importance)
+    pyplot.show()
+
+# Variable importance  
+#FC 
+variable_importance(logreg_fc)
 
 cm_fc = confusion_matrix(ytest_fc, yprob_logreg_fc)
 print(cm_fc)
@@ -439,14 +457,9 @@ accuracy_score(ytest_ms, ypred_knn_ms)
 
 ### ROC-curve KNN ###
 
-roc_KNN_fc = roc(ytrain_fc, ytest_fc, yprob_knn_fc)
+roc_KNN_fc = roc(ytrain_fc, xtrain_fc, ytest_fc, xtest_fc, knn_fc)
 roc_KNN_fc
 
-roc_KNN_pc = roc(ytrain_pc, ytest_pc, yprob_knn_pc)
-roc_KNN_pc
-
-roc_KNN_ms = roc(ytrain_ms, ytest_ms, yprob_knn_ms)
-roc_KNN_ms
 
 
 ########################## Training the SVM-model
@@ -483,7 +496,7 @@ accuracy_score(ytest_ms, ypred_svc_ms)
 ###################### ROC Curve ################################### 
 
 
-roc_SVM_fc = roc(ytrain_fc, ytest_fc, ypred_svc_fc)
+roc_SVM_fc = roc(ytrain_fc, xtrain_fc, ytest_fc, xtest_fc, svc_fc)
 roc_SVM_fc
 
 roc_SVM_pc = roc(ytrain_pc, ytest_pc, ypred_svc_pc)
@@ -491,6 +504,11 @@ roc_SVM_pc
 
 roc_SVM_ms = roc(ytrain_ms, ytest_ms, ypred_svc_ms)
 roc_SVM_ms
+
+
+
+
+
 
 
 ####### SVM-model with 'AVERAGE_INCOME_COUNTY_TIME1' ######
@@ -517,3 +535,41 @@ accuracy_score(ytest_avg_income, ypred_svc_avg_income)
 nb_fc = GaussianNB
 nb_fc.fit(xtrain_fc, ytrain_fc)
 
+
+
+
+
+######################### Traning the Random Forest
+from sklearn.ensemble import RandomForestClassifier
+rfc_fc = RandomForestClassifier(n_estimators = 10, criterion = 'entropy', random_state = 0)
+rfc_fc = rfc_fc.fit(xtrain_fc, ytrain_fc)
+
+# Prediction
+ypred_rfc_fc = (rfc_fc.predict_proba(xtest_fc)[:,1] > 0.05).astype(bool)
+
+# Accuracy
+cm_rfc_fc = confusion_matrix(ytest_fc, ypred_rfc_fc)
+print(cm_rfc_fc)
+accuracy_score(ytest_fc, ypred_rfc_fc)
+
+
+
+def test_treshold(model, n, y_test):
+    """ 
+    
+    parameters:
+        @model: fitted model
+    
+    """  
+    best_score = 0
+    best_treshold = 0
+    for i in range(n):
+        treshold = i/n 
+        current_pred_model = (model.predict_proba(xtest_fc)[:,1] >= treshold).astype(bool)
+        accuracy_test = accuracy_score(y_test, current_pred_model)
+        if accuracy_test > best_score:
+            best_score = accuracy_test
+            best_treshold = treshold
+
+    return best_treshold, best_score
+test_treshold(rfc_fc, 100, ytest_fc)
