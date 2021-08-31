@@ -323,7 +323,7 @@ logreg_ms.fit(xtrain_ms, ytrain_ms)
 
 # Predicting the logreg model
 ypred_logreg_fc = logreg_fc.predict(xtest_fc)
-yprob_logreg_fc = (logreg_fc.predict_proba(xtest_fc)[:,1]  >= 0.05).astype(bool)
+yprob_logreg_fc = (logreg_fc.predict_proba(xtest_fc)[:,1]  >= 0.2).astype(bool)
 
 ypred_logreg_pc = logreg_pc.predict(xtest_pc)
 yprob_logreg_pc = (logreg_pc.predict_proba(xtest_pc)[:,1]  >= 0.05).astype(bool)
@@ -333,17 +333,17 @@ yprob_logreg_ms = (logreg_pc.predict_proba(xtest_ms)[:,1]  >= 0.05).astype(bool)
 
 
 
-cm_fc = confusion_matrix(ytest_fc, ypred_logreg_fc)
+cm_fc = confusion_matrix(ytest_fc, yprob_logreg_fc)
 print(cm_fc)
-accuracy_score(ytest_fc, ypred_logreg_fc)
+accuracy_score(ytest_fc, yprob_logreg_fc)
 
-cm_pc = confusion_matrix(ytest_pc, ypred_logreg_pc)
+cm_pc = confusion_matrix(ytest_pc, yprob_logreg_pc)
 print(cm_pc)
-accuracy_score(ytest_pc, ypred_logreg_pc)
+accuracy_score(ytest_pc, yprob_logreg_pc)
 
-cm_ms = confusion_matrix(ytest_ms, ypred_logreg_ms)
+cm_ms = confusion_matrix(ytest_ms, yprob_logreg_ms)
 print(cm_ms)
-accuracy_score(ytest_ms, ypred_logreg_ms)
+accuracy_score(ytest_ms, yprob_logreg_ms)
 
 ### ROC-curve logreg ###
 
@@ -360,12 +360,12 @@ auc1 = metrics.roc_auc_score(y_train, pred_prob1[:, 1])
 
 
 #ROC-curve function
-def roc(ytrain, x_train, ytest, x_test):
+def roc(ytrain, x_train, ytest, x_test, model):
     """
     
     """
-    fit_proba = logreg_fc.predict_proba(x_train)
-    yprob_pred = logreg_fc.predict_proba(x_test)
+    fit_proba = model.predict_proba(x_train)
+    yprob_pred = model.predict_proba(x_test)
 
     fpr, tpr, tr = metrics.roc_curve(ytest, yprob_pred[:,1])
     auc = metrics.roc_auc_score(ytest, yprob_pred[:, 1])
@@ -374,23 +374,25 @@ def roc(ytrain, x_train, ytest, x_test):
     auc1 = metrics.roc_auc_score(ytrain, fit_proba[:,1])
 
     plt.figure(num = None, figsize = (10,10), dpi = 80)
-    plt.plot(fpr, tpr, label = 'SVM test data (area = %0.2f)' % auc)
-    plt.plot(fpr1, tpr1, label = 'SVM train data (area = %0.2f)' % auc1)
-    plt.plot((0,1), (1,0), ls = "--", c = ".3")
+
+    plt.plot((1,0), (1,0), ls = "--", c = ".3")
     plt.title = (' ROC Curve - test and train data')
     plt.xlabel('False positive rate')
+    plt.plot(fpr, tpr, label = '{} test data (area = {:.2f})'.format(model, auc))
+    plt.plot(fpr1, tpr1, label = '{} train data (area = {:.2f})'.format(model, auc1))
     plt.ylabel('True positive rate')
     plt.legend()
     plt.show()
     return plt
 
-roc_logreg_fc = roc(ytrain_fc, xtrain_fc, ytest_fc, xtest_fc)
+roc_logreg_fc = roc(ytrain_fc, xtrain_fc, ytest_fc, xtest_fc, logreg_fc)
 roc_logreg_fc
 
-roc_logreg_pc = roc(ytrain_pc, ytest_pc, yprob_logreg_pc)
+
+roc_logreg_pc = roc(ytrain_pc, xtrain_pc, ytest_pc, xtest_pc, logreg_pc)
 roc_logreg_pc
 
-roc_logreg_ms = roc(ytrain_ms, ytest_ms, yprob_logreg_ms)
+roc_logreg_ms = roc(ytrain_ms, xtrain_ms, ytest_ms, xtest_ms, logreg_ms)
 roc_logreg_ms
 
 
@@ -409,19 +411,20 @@ knn_ms.fit(xtrain_ms, ytrain_ms)
 
 # Predicting the knn models
 ypred_knn_fc = knn_fc.predict(xtest_fc)
-yprob_knn_fc = (knn_fc.predict_proba(xtest_fc)[:,1]  >= 0.05).astype(bool)
 
 ypred_knn_pc = knn_pc.predict(xtest_pc)
-yprob_knn_pc = (knn_pc.predict_proba(xtest_pc)[:,1]  >= 0.05).astype(bool)
 
 ypred_knn_ms = knn_ms.predict(xtest_ms)
-yprob_knn_ms = (knn_ms.predict_proba(xtest_ms)[:,1]  >= 0.05).astype(bool)
 
 
 # Checking the accuracy with confusion matrix
 cm_knn_fc = confusion_matrix(ytest_fc, ypred_knn_fc)
 print(cm_knn_fc)
 accuracy_score(ytest_fc, ypred_knn_fc)
+
+
+tn, fp, fn, tp = confusion_matrix(ytest_fc, ypred_knn_fc).ravel()
+(tn, fp, fn, tp)
 
 
 cm_knn_pc = confusion_matrix(ytest_pc, ypred_knn_pc)
@@ -492,7 +495,7 @@ roc_SVM_ms
 
 ####### SVM-model with 'AVERAGE_INCOME_COUNTY_TIME1' ######
 
-df_avg_income = df[df['AVERAGE_INCOME_COUNTTIME1'].notna()]
+df_avg_income = df[df['AVERAGE_INCOME_COUNTY_TIME1'].notna()]
 
 y_full_churn_avg_income   = df_avg_income['FULL_CHURN']
 xtrain_avg_income, xtest_avg_income, ytrain_avg_income, ytest_avg_income = train_test_split(x_avg_income, y_full_churn_avg_income, test_size = 0.2, random_state = 0)
