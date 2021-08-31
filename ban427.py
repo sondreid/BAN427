@@ -249,12 +249,12 @@ bar_plot(hist_df_more_sale, "AGE_GROUP", 'WOMAN', 'MORE_SALE', 'GENDER', 'Men', 
 
 
 
-####################### Prediction model #########################
+####################### Prediction model ------------------------------------------------------------------------------------------------------------------------------
 
 # Creating features and prediction variables
 
-#x = df.loc[:, ~df.columns.isin(['TIME1', 'TIME2', 'TENURE_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
-x = df[['TIME1', 'TIME2', 'TENURE_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE']]
+x = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2' ,'TENURE_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
+x_avg_income = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2' ,'TENURE_TIME2','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
 
 ## One hot encoding age group feature
 one_hot_encoder = OneHotEncoder(handle_unknown= 'ignore')
@@ -267,8 +267,12 @@ age_group_hot
 age_group_hot_df = pd.DataFrame(age_group_hot)
 age_group_hot_df.columns = one_hot_encoder.get_feature_names()
 
-# Joining into x
-x = x.join(age_group_hot_df)
+# Concat into x
+x = pd.concat([x.reset_index(drop=True), age_group_hot_df], axis=1)
+x = x.loc[:, x.columns != 'AGE_GROUP'] # Remove string AGE_GROUP
+
+# Check for NaN
+x[x.isna().any(axis=1)]
 
 
 y_full_churn    = df['FULL_CHURN']
@@ -281,8 +285,6 @@ y_more_sale     = df['MORE_SALE']
 xtrain_fc, xtest_fc, ytrain_fc, ytest_fc = train_test_split(x, y_full_churn,    test_size = 0.2, random_state = 0)
 xtrain_pc, xtest_pc, ytrain_pc, ytest_pc = train_test_split(x, y_partial_churn, test_size = 0.2, random_state = 0)
 xtrain_ms, xtest_ms, ytrain_ms, ytest_ms = train_test_split(x, y_more_sale,     test_size = 0.2, random_state = 0)
-
-
 
 
 
@@ -299,6 +301,10 @@ xtest_pc  = sc.transform(xtest_pc)
 xtrain_ms = sc.fit_transform(xtrain_ms)
 xtest_ms  = sc.transform(xtest_ms)
 
+
+# Check for Nan
+np.any(np.isnan(xtrain_fc))
+np.any(np.isfinite(xtrain_fc))
 
 ########################## Training the logistic regression model
 
@@ -339,6 +345,28 @@ accuracy_score(ytest_ms, ypred_logreg_ms)
 
 ### ROC-curve logreg ###
 
+#ROC-curve function
+def roc(ytrain, ytest, ypred):
+    """
+    
+    """
+    fpr, tpr, tr = metrics.roc_curve(ytest, ypred[:,1])
+    auc = metrics.roc_auc_score(ytest, ypred[:, 1])
+
+    fpr1, tpr1, tr = metrics.roc_curve(ytrain, ypred[:,1])
+    auc1 = metrics.roc_auc_score(ytrain, ypred[:,1])
+
+    plt.figure(num = None, figsize = (10,10), dpi = 80)
+    plt.plot(fpr, tpr, label = 'SVM test data (area = %0.2f)' % auc)
+    plt.plot(fpr1, tpr1, label = 'SVM train data (area = %0.2f)' % auc1)
+    plt.plot((0,1), (1,0), ls = "--", c = ".3")
+    plt.title = (' ROC Curve - test and train data')
+    plt.xlabel('False positive rate')
+    plt.ylabel('True positive rate')
+    plt.legend()
+    plt.show()
+    return plt
+
 roc_logreg_fc = roc(ytrain_fc, ytest_fc, yprob_logreg_fc)
 roc_logreg_fc
 
@@ -347,6 +375,32 @@ roc_logreg_pc
 
 roc_logreg_ms = roc(ytrain_ms, ytest_ms, yprob_logreg_ms)
 roc_logreg_ms
+
+
+########################## Logistic regression with 'AVERAGE_INCOME_COUNTY_TIME1' ################################
+
+
+#Remove / add 'AVERAGE_INCOME_COUNTY_TIME1' from test/train set 
+y_full_churn    = df['FULL_CHURN']
+xtrain_fc, xtest_fc, ytrain_fc, ytest_fc = train_test_split(x, y_full_churn,    test_size = 0.2, random_state = 0)
+
+
+logreg_fc = LogisticRegression(random_state = 0)
+logreg_fc.fit(xtrain_fc, ytrain_fc)
+
+# Predicting the logreg model
+ypred_logreg_fc = logreg_fc.predict(xtest_fc)
+# Probability 
+yprob_logreg_fc = (logreg_fc.predict_proba(xtest_fc)[:,1]  >= 0.05).astype(bool)
+
+# Confusion matrix
+cm_fc = confusion_matrix(ytest_fc, ypred_logreg_fc)
+print(cm_fc)
+accuracy_score(ytest_fc, ypred_logreg_fc)
+
+
+
+
 
 
 ########################## Training the KNN-model
@@ -389,27 +443,6 @@ accuracy_score(ytest_ms, ypred_knn_ms)
 
 
 ### ROC-curve KNN ###
-
-def roc(ytrain, ytest, ypred):
-    """
-    
-    """
-    fpr, tpr, tr = metrics.roc_curve(ytest, ypred[:,1])
-    auc = metrics.roc_auc_score(ytest, ypred[:, 1])
-
-    fpr1, tpr1, tr = metrics.roc_curve(ytrain, ypred[:,1])
-    auc1 = metrics.roc_auc_score(ytrain, ypred[:,1])
-
-    plt.figure(num = None, figsize = (10,10), dpi = 80)
-    plt.plot(fpr, tpr, label = 'SVM test data (area = %0.2f)' % auc)
-    plt.plot(fpr1, tpr1, label = 'SVM train data (area = %0.2f)' % auc1)
-    plt.plot((0,1), (1,0), ls = "--", c = ".3")
-    plt.title = (' ROC Curve - test and train data')
-    plt.xlabel('False positive rate')
-    plt.ylabel('True positive rate')
-    plt.legend()
-    plt.show()
-    return plt
 
 roc_KNN_fc = roc(ytrain_fc, ytest_fc, yprob_knn_fc)
 roc_KNN_fc
