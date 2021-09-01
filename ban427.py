@@ -32,28 +32,8 @@ raw_df['MORE_SALE']     = np.where((raw_df['NUMBER_COVERS_TIME2'] - raw_df['NUMB
 
 
 
-# What characterizes more sale customers?
-more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==1]
-non_more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==0]
-
-
-################ Clean data errors in tenure difference #############
-df = raw_df[(raw_df['TENURE_TIME2'] - raw_df['TENURE_TIME1'] == 0.5) | (raw_df['TIME2']).isnull()]
-
-df.loc[:,'NUMBER_COVERS_TIME2'] = df.loc[:,'NUMBER_COVERS_TIME2'].fillna(0)
-df.loc[:,'TOTAL_PREM_TIME2']    = df.loc[:,'TOTAL_PREM_TIME2'].fillna(0)
-
-
-
-
-# What characterizes more sale customers?
-more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==1]
-non_more_sale_customers = raw_df.loc[raw_df['MORE_SALE'] ==0]
-
-
 ################ Clean data errors in tenure difference #############
 
-df[(df['TENURE_TIME2'] - df['TENURE_TIME1'] == 0.5) | (df['TIME2']).isnull()]
 df = raw_df[(raw_df['TENURE_TIME2'] - raw_df['TENURE_TIME1'] == 0.5) | (raw_df['TIME2']).isnull()]
 
 ########################### Descriptive statistics ------------------------------------------------------------------------------------------------------------------------------
@@ -165,7 +145,7 @@ def bar_plot(df, x_var, hue_var, y_var, label_title, x_label, y_label, x_axis_la
     Generates a bar plot with hue.
     
     Parameters:
-        df: input dataframeø7609
+        df: input dataframe
         x_var : x variable
         hue_var: category variable. Is left out if empty string "". 
         y_var: y variable
@@ -255,8 +235,6 @@ bar_plot(hist_df_more_sale, "AGE_GROUP", 'WOMAN', 'MORE_SALE', 'GENDER', 'Men', 
 # Creating features and prediction variables
 
 x            = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'PREMIUM_INCREASE', 'TIME2', 'TOTAL_PREM_TIME2', 'AVERAGE_INCOME_COUNTY_TIME1','TENURE_TIME2','FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
-#x_avg_income = df.loc[:, ~df.columns.isin(['TIME1', 'NUMBER_COVERS_TIME2', 'TIME2', 'TOTAL_PREM_TIME2' ,'TENURE_TIME2', 'FULL_CHURN', 'PARTIAL_CHURN', 'MORE_SALE'])]
-
 
 
 ## One hot encoding age group feature
@@ -346,8 +324,10 @@ def variable_importance(model):
     importance = model.coef_[0]
     for i,v in enumerate(importance):
             print('Feature: %0d, Score: %.5f' % (i,v))
+    
     pyplot.bar([x for x in range(len(importance))], importance)
     pyplot.show()
+    
 
 # Variable importance  
 #FC 
@@ -368,21 +348,16 @@ accuracy_score(ytest_ms, yprob_logreg_ms)
 ### ROC-curve logreg ###
 
 
-###################################
-
-pred_prob=logit_model.predict_proba(x_test_small)
-fpr, tpr, tr = metrics.roc_curve(y_test, pred_prob[:,1])
-auc = metrics.roc_auc_score(y_test, pred_prob[:, 1])
-pred_prob1=logit_model.predict_proba(x_train_small)
-fpr1, tpr1, tr = metrics.roc_curve(y_train, pred_prob1[:,1])
-auc1 = metrics.roc_auc_score(y_train, pred_prob1[:, 1])
-
-
-
 #ROC-curve function
 def roc(ytrain, x_train, ytest, x_test, model):
     """
-    
+    Function that draws a ROC curve based o
+    Parameters:
+        @ytrain: target feature training set
+        @x_train: features training set
+        @y_test: target feature test set
+        @x_test: features test set
+        @model: a fitted model
     """
     fit_proba = model.predict_proba(x_train)
     yprob_pred = model.predict_proba(x_test)
